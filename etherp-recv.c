@@ -18,10 +18,17 @@
 #include "etherp.h"
 
 static struct option etherp_recv_options[] = {
-	{ "help", no_argument, NULL, 'h' },
 	{ "interface", required_argument, NULL, 'I' },
 	{ "verbose", no_argument, NULL, 'v' },
+	{ "help", no_argument, NULL, 'h' },
 	{ NULL, 0, NULL, 0 }
+};
+
+static char *etherp_recv_options_help[][2] = {
+	{ "IF", "interface used to send raw data" },
+	{ NULL, "activate the verbose" },
+	{ NULL, "display this help and exit" },
+	{ NULL, NULL }
 };
 
 static int etherp_verbose = 0;  /**< This program will verbose
@@ -29,9 +36,30 @@ static int etherp_verbose = 0;  /**< This program will verbose
 static int etherp_quit = 0;     /**< if set, exit the reception loop */
 static unsigned long long etherp_nb_bytes = 0;
 
-static void etherp_recv_usage(void)
+static void etherp_recv_usage(const char *prog_name)
 {
-	fprintf(stderr, "TODO: usage\n");
+	int i;
+	int tmp;
+	char spaces[16] = "                ";
+
+	printf("Usage: %s [OPTION]\n", prog_name);
+	printf("Receive Ethernet frames sent by etherp-send\n");
+	printf("\n");
+	for (i = 0; etherp_recv_options[i].name != NULL; ++i) {
+		if (etherp_recv_options_help[i][0] == NULL) {
+			printf("  -%c, --%-15s %s\n", etherp_recv_options[i].val,
+			       etherp_recv_options[i].name, etherp_recv_options_help[i][1]);
+		} else {
+			tmp = strlen(etherp_recv_options[i].name) +
+				strlen(etherp_recv_options_help[i][0]);
+			tmp = (tmp > 0) ? (15 - tmp) : 0;
+			spaces[tmp] = '\0';
+			printf("  -%c, --%s=%s%s%s\n", etherp_recv_options[i].val,
+			       etherp_recv_options[i].name, etherp_recv_options_help[i][0],
+			       spaces, etherp_recv_options_help[i][1]);
+			spaces[tmp] = ' ';
+		}
+	}
 }
 
 static void etherp_signal_display_bitrate(int sig)
@@ -145,7 +173,7 @@ int main(int argc, char *argv[])
 
 		switch (c) {
 			case 'h':
-				etherp_recv_usage();
+				etherp_recv_usage(argv[0]);
 				return 0;
 				break;
 			case 'I':
@@ -155,14 +183,14 @@ int main(int argc, char *argv[])
 				etherp_verbose = 1;
 				break;
 			default:
-				etherp_recv_usage();
+				etherp_recv_usage(argv[0]);
 				return 1;
 				break;
 		}
 	}
 
 	if ((argc - optind) != 0) {
-		etherp_recv_usage();
+		etherp_recv_usage(argv[0]);
 		return 1;
 	}
 

@@ -18,14 +18,25 @@
 #include "etherp.h"
 
 static struct option etherp_send_options[] = {
-	{ "help", no_argument, NULL, 'h' },
 	{ "interface", required_argument, NULL, 'I' },
 	{ "interval", required_argument, NULL, 'i' },
 	{ "count", required_argument, NULL, 'c' },
 	{ "size", required_argument, NULL, 's' },
 	{ "vary-size", no_argument, NULL, 'V' },
 	{ "verbose", no_argument, NULL, 'v' },
+	{ "help", no_argument, NULL, 'h' },
 	{ NULL, 0, NULL, 0 }
+};
+
+static char *etherp_send_options_help[][2] = {
+	{ "IF", "interface used to send raw data" },
+	{ "US", "wait US microseconds between frames" },
+	{ "NB", "send NB frames and exit" },
+	{ "SIZE", "send the size of frames (default 1500)" },
+	{ NULL, "send frames with various sizes" },
+	{ NULL, "activate the verbose" },
+	{ NULL, "display this help and exit" },
+	{ NULL, NULL }
 };
 
 static int etherp_verbose = 0;  /**< This program will verbose
@@ -33,9 +44,30 @@ static int etherp_verbose = 0;  /**< This program will verbose
 static int etherp_quit = 0;     /**< if set, send the last frame and exit */
 static unsigned long long etherp_nb_bytes = 0;
 
-static void etherp_send_usage(void)
+static void etherp_send_usage(const char *prog_name)
 {
-	fprintf(stderr, "TODO: usage\n");
+	int i;
+	int tmp;
+	char spaces[16] = "                ";
+
+	printf("Usage: %s [OPTION] MAC_ADDRESS\n", prog_name);
+	printf("Send Ethernet frames (\"pings\") to MAC_ADDRESS\n");
+	printf("\n");
+	for (i = 0; etherp_send_options[i].name != NULL; ++i) {
+		if (etherp_send_options_help[i][0] == NULL) {
+			printf("  -%c, --%-15s %s\n", etherp_send_options[i].val,
+			       etherp_send_options[i].name, etherp_send_options_help[i][1]);
+		} else {
+			tmp = strlen(etherp_send_options[i].name) +
+				strlen(etherp_send_options_help[i][0]);
+			tmp = (tmp > 0) ? (15 - tmp) : 0;
+			spaces[tmp] = '\0';
+			printf("  -%c, --%s=%s%s%s\n", etherp_send_options[i].val,
+			       etherp_send_options[i].name, etherp_send_options_help[i][0],
+			       spaces, etherp_send_options_help[i][1]);
+			spaces[tmp] = ' ';
+		}
+	}
 }
 
 static int etherp_if_mac_addr(int s, const char *ifname,
@@ -206,7 +238,7 @@ int main(int argc, char *argv[])
 
 		switch (c) {
 			case 'h':
-				etherp_send_usage();
+				etherp_send_usage(argv[0]);
 				return 0;
 				break;
 			case 'I':
@@ -242,14 +274,14 @@ int main(int argc, char *argv[])
 				etherp_verbose = 1;
 				break;
 			default:
-				etherp_send_usage();
+				etherp_send_usage(argv[0]);
 				return 1;
 				break;
 		}
 	}
 
 	if ((argc - optind) != 1) {
-		etherp_send_usage();
+		etherp_send_usage(argv[0]);
 		return 1;
 	}
 
