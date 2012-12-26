@@ -1,3 +1,24 @@
+/*
+ * etherp-send tool of the Etherp project
+ *
+ * Copyright 2012 Albin Kauffmann <albin.kauffmann@gmail.com>
+ *
+ * This file is part of Etherp.
+ *
+ * Ardumotics is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Ardumotics is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Ardumotics.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -247,14 +268,14 @@ int main(int argc, char *argv[])
 			case 'i':
 				interval = strtoll(optarg, &endstr, 10);
 				if ((*endstr != '\0') || (interval <= 0)) {
-					fprintf(stderr, "The interval must an integer greater than 0\n");
+					fprintf(stderr, "The interval must be an integer greater than 0\n");
 					return 1;
 				}
 				break;
 			case 'c':
 				count = strtol(optarg, &endstr, 10);
 				if ((*endstr != '\0') || (count <= 0)) {
-					fprintf(stderr, "The count must an integer greater than 0\n");
+					fprintf(stderr, "The count must be an integer greater than 0\n");
 					return 1;
 				}
 				break;
@@ -262,7 +283,7 @@ int main(int argc, char *argv[])
 				size = strtol(optarg, &endstr, 10);
 				if ((*endstr != '\0') ||
 				    (size < ETH_DATA_LEN_MIN) || (size > ETH_DATA_LEN)) {
-					fprintf(stderr, "The size must an integer between %d and %d\n",
+					fprintf(stderr, "The size must be an integer between %d and %d\n",
 					        ETH_DATA_LEN_MIN, ETH_DATA_LEN);
 					return 1;
 				}
