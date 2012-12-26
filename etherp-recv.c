@@ -157,8 +157,9 @@ static int etherp_recv_frames(const char *ifname)
 				       id - (last_id + 1), id, last_id);
 				nb_errors += (id - last_id);
 			}
-			if (etherph->crc32 != crc32(crc32(0L, Z_NULL, 0), data + sizeof (struct etherp_hdr),
-			                            len - sizeof (struct etherp_hdr) - ETH_HLEN)) {
+			if (etherph->crc32 != ntohl(crc32(crc32(0L, Z_NULL, 0),
+							  data + sizeof (struct etherp_hdr),
+							  len - sizeof (struct etherp_hdr) - ETH_HLEN))) {
 				printf("Warning: Received frame with wrong CRC\n");
 				++nb_errors;
 			}

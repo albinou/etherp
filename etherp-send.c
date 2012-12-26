@@ -196,8 +196,10 @@ static int etherp_send_frames(const char *macstr_dst, const char *ifname,
 		for (i = sizeof (struct etherp_hdr); i < sz; ++i) {
 			data[i] = (unsigned char)((int) (255. * rand() / RAND_MAX));
 		}
-		etherph->crc32 = crc32(crc32(0L, Z_NULL, 0), data + sizeof (struct etherp_hdr),
-		                       sz - sizeof (struct etherp_hdr));
+		etherph->crc32 = htonl(crc32(crc32(0L, Z_NULL, 0), data +
+					     sizeof (struct etherp_hdr),
+					     sz - sizeof (struct etherp_hdr))
+				       );
 
 		ETHERP_VPRINT("Sending frame to %s ID=%u\n", macstr_dst, id);
 		if (((ret = sendto(s, buf, ETH_HLEN + sz, 0, (struct sockaddr*) &s_addr,

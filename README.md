@@ -57,3 +57,5 @@ following fields:
 * crc32 (4 bytes): Checksum of data
 * stop (1 byte): boolean indicating if this is the last frame sent by the sender
 * data: generated data whose size is the rest of the Ethernet frame
+
+All fields are transmitted using network byte order.
