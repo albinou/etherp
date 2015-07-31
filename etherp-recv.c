@@ -35,6 +35,7 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <zlib.h>
+#include <linux/filter.h>
 
 #include "etherp.h"
 
@@ -111,9 +112,25 @@ static int etherp_recv_frames(const char *ifname)
 	unsigned long long nb_frames = 0;
 	unsigned long long nb_errors = 0;
 
+	struct sock_filter incoming_filter[] = {
+		{ 0x28, 0, 0, 0xfffff004 },
+		{ 0x15, 0, 1, 0x00000004 },
+		{ 0x6, 0, 0, 0x00000000 },
+		{ 0x6, 0, 0, 0x0000ffff },
+	};
+	struct sock_fprog prog;
+
+	prog.len = 4;
+	prog.filter = incoming_filter;
+
 	s = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	if (s == -1) {
 		perror("Cannot open the raw socket");
+		return errno;
+	}
+
+	if (setsockopt(s, SOL_SOCKET, SO_ATTACH_FILTER, &prog, sizeof(prog)) < 0) {
+		perror("Cannot attach filter on the raw socket");
 		return errno;
 	}
 
