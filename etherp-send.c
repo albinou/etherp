@@ -163,7 +163,7 @@ static int etherp_send_frames(const char *macstr_dst, const char *ifname,
 		return errno;
 	}
 
-	buf = malloc(ETH_FRAME_LEN);
+	buf = malloc(ETH_FRAME_LEN + (9000 - ETH_DATA_LEN));
 	etherhead = buf;
 	data = buf + ETH_HLEN;
 	eh = (struct ethhdr*) etherhead;
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
 			case 's':
 				size = strtol(optarg, &endstr, 10);
 				if ((*endstr != '\0') ||
-				    (size < ETH_DATA_LEN_MIN) || (size > ETH_DATA_LEN)) {
+				    (size < ETH_DATA_LEN_MIN) || (size > 9000)) {
 					fprintf(stderr, "The size must be an integer between %d and %d\n",
 					        ETH_DATA_LEN_MIN, ETH_DATA_LEN);
 					return 1;

@@ -134,14 +134,14 @@ static int etherp_recv_frames(const char *ifname)
 		return errno;
 	}
 
-	buf = malloc(ETH_FRAME_LEN + ETH_FCS_LEN);
+	buf = malloc(ETH_FRAME_LEN + (9000 - ETH_DATA_LEN) + ETH_FCS_LEN);
 	etherhead = buf;
 	data = buf + ETH_HLEN;
 	eh = (struct ethhdr*) etherhead;
 	etherph = (struct etherp_hdr *) data;
 
 	while (!etherp_quit) {
-		if ((len = recvfrom(s, buf, ETH_FRAME_LEN, 0, NULL, NULL)) == -1) {
+		if ((len = recvfrom(s, buf, ETH_FRAME_LEN + (9000 - ETH_DATA_LEN), 0, NULL, NULL)) == -1) {
 			if (etherp_quit)
 				break;
 			perror("Can't receive Ethernet frame");
