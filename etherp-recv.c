@@ -41,6 +41,7 @@
 
 static struct option etherp_recv_options[] = {
 	{ "interface", required_argument, NULL, 'I' },
+	{ "units", required_argument, NULL, 'u' },
 	{ "verbose", no_argument, NULL, 'v' },
 	{ "help", no_argument, NULL, 'h' },
 	{ NULL, 0, NULL, 0 }
@@ -48,6 +49,7 @@ static struct option etherp_recv_options[] = {
 
 static char *etherp_recv_options_help[][2] = {
 	{ "IF", "interface used to send raw data" },
+	{ "STD", "using units of the specified strandard (default: iec)" },
 	{ NULL, "activate the verbose" },
 	{ NULL, "display this help and exit" },
 	{ NULL, NULL }
@@ -57,6 +59,7 @@ static int etherp_verbose = 0;  /**< This program will verbose
                                    if (verbose != 0) */
 static int etherp_quit = 0;     /**< if set, exit the reception loop */
 static unsigned long long etherp_nb_bytes = 0;
+static int etherp_use_iec = 1;
 
 static void etherp_recv_usage(const char *prog_name)
 {
@@ -82,12 +85,18 @@ static void etherp_recv_usage(const char *prog_name)
 			spaces[tmp] = ' ';
 		}
 	}
+	printf("STD are:\n");
+	printf("  iec: base2 units (1 MiB = 1024 * 1024 B)\n");
+	printf("  si: base10 units (1 MB = 1000 * 1000 B)\n");
 }
 
 static void etherp_signal_display_bitrate(int sig)
 {
-	printf("Receiving at %lld mbit/s (%.2f MB/s)        \r",
-	       etherp_nb_bytes * 8 / 1000000, etherp_nb_bytes / 1000000.);
+	printf("Receiving at %lld %sbit/s (%.2f %sB/s)        \r",
+	       etherp_nb_bytes * 8 / (etherp_use_iec ? 1048576 : 1000000),
+	       (etherp_use_iec ? "Mi" : "M"),
+	       etherp_nb_bytes / (etherp_use_iec ? 1048576. : 1000000.),
+	       (etherp_use_iec ? "Mi" : "M"));
 	etherp_nb_bytes = 0;
 	fflush(stdout);
 }
@@ -191,8 +200,9 @@ static int etherp_recv_frames(const char *ifname)
 
 	printf("\n\n");
 	printf("--- etherp-recv statictics ---\n");
-	printf("%llu frames received, %.02f MB received, %llu errors detected\n",
-	       nb_frames, nb_bytes / 1000000., nb_errors);
+	printf("%llu frames received, %.02f %sB received, %llu errors detected\n",
+	       nb_frames, nb_bytes / (etherp_use_iec ? 1048576. : 1000000.),
+	       (etherp_use_iec ? "Mi" : "M"), nb_errors);
 	return 0;
 }
 
@@ -205,7 +215,7 @@ int main(int argc, char *argv[])
 	struct itimerval itv;
 
 	while (1) {
-		c = getopt_long(argc, argv, "hI:v", etherp_recv_options, NULL);
+		c = getopt_long(argc, argv, "hI:u:v", etherp_recv_options, NULL);
 
 		if (c == -1)
 			break;
@@ -217,6 +227,18 @@ int main(int argc, char *argv[])
 				break;
 			case 'I':
 				ifname = optarg;
+				break;
+		        case 'u':
+				if (strlen(optarg) == 3
+				    && !memcmp(optarg, "iec", 3)) {
+					etherp_use_iec = 1;
+				} else if (strlen(optarg) == 2
+					   && !memcmp(optarg, "si", 2)) {
+					etherp_use_iec = 0;
+				} else {
+					etherp_recv_usage(argv[0]);
+					return 1;
+				}
 				break;
 			case 'v':
 				etherp_verbose = 1;

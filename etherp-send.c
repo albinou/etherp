@@ -43,6 +43,7 @@ static struct option etherp_send_options[] = {
 	{ "interval", required_argument, NULL, 'i' },
 	{ "count", required_argument, NULL, 'c' },
 	{ "size", required_argument, NULL, 's' },
+	{ "units", required_argument, NULL, 'u' },
 	{ "vary-size", no_argument, NULL, 'V' },
 	{ "verbose", no_argument, NULL, 'v' },
 	{ "help", no_argument, NULL, 'h' },
@@ -54,6 +55,7 @@ static char *etherp_send_options_help[][2] = {
 	{ "US", "wait US microseconds between frames" },
 	{ "NB", "send NB frames and exit" },
 	{ "SIZE", "send the size of frames (default 1500)" },
+	{ "STD", "using units of the specified strandard (default: iec)" },
 	{ NULL, "send frames with various sizes" },
 	{ NULL, "activate the verbose" },
 	{ NULL, "display this help and exit" },
@@ -64,6 +66,7 @@ static int etherp_verbose = 0;  /**< This program will verbose
                                    if (verbose != 0) */
 static int etherp_quit = 0;     /**< if set, send the last frame and exit */
 static unsigned long long etherp_nb_bytes = 0;
+static int etherp_use_iec = 1;
 
 static void etherp_send_usage(const char *prog_name)
 {
@@ -89,6 +92,9 @@ static void etherp_send_usage(const char *prog_name)
 			spaces[tmp] = ' ';
 		}
 	}
+	printf("STD are:\n");
+	printf("  iec: base2 units (1 MiB = 1024 * 1024 B)\n");
+	printf("  si: base10 units (1 MB = 1000 * 1000 B)\n");
 }
 
 static int etherp_if_mac_addr(int s, const char *ifname,
@@ -126,8 +132,11 @@ static int etherp_mac_str2array(const char *macstr,
 
 static void etherp_signal_display_bitrate(int sig)
 {
-	printf("Sending at %lld mbit/s (%.2f MB/s)        \r",
-	       etherp_nb_bytes * 8 / 1000000, etherp_nb_bytes / 1000000.);
+	printf("Sending at %lld %sbit/s (%.2f %sB/s)        \r",
+	       etherp_nb_bytes * 8 / (etherp_use_iec ? 1048576 : 1000000),
+	       (etherp_use_iec ? "Mi" : "M"),
+	       etherp_nb_bytes / (etherp_use_iec ? 1048576. : 1000000.),
+	       (etherp_use_iec ? "Mi" : "M"));
 	etherp_nb_bytes = 0;
 	fflush(stdout);
 }
@@ -233,7 +242,9 @@ static int etherp_send_frames(const char *macstr_dst, const char *ifname,
 
 	printf("\n\n");
 	printf("--- etherp-send statictics ---\n");
-	printf("%llu frames sent, %.02f MB sent\n", nb_frames, nb_bytes / 1000000.);
+	printf("%llu frames sent, %.02f %sB sent\n", nb_frames,
+	       nb_bytes / (etherp_use_iec ? 1048576. : 1000000.),
+	       (etherp_use_iec ? "Mi" : "M"));
 
 	return 0;
 }
@@ -254,7 +265,7 @@ int main(int argc, char *argv[])
 	struct itimerval itv;
 
 	while (1) {
-		c = getopt_long(argc, argv, "hI:i:c:s:Vv", etherp_send_options, NULL);
+		c = getopt_long(argc, argv, "hI:i:c:s:u:Vv", etherp_send_options, NULL);
 
 		if (c == -1)
 			break;
@@ -287,6 +298,18 @@ int main(int argc, char *argv[])
 				    (size < ETH_DATA_LEN_MIN) || (size > 9000)) {
 					fprintf(stderr, "The size must be an integer between %d and %d\n",
 					        ETH_DATA_LEN_MIN, ETH_DATA_LEN);
+					return 1;
+				}
+				break;
+		        case 'u':
+				if (strlen(optarg) == 3
+				    && !memcmp(optarg, "iec", 3)) {
+					etherp_use_iec = 1;
+				} else if (strlen(optarg) == 2
+					   && !memcmp(optarg, "si", 2)) {
+					etherp_use_iec = 0;
+				} else {
+					etherp_send_usage(argv[0]);
 					return 1;
 				}
 				break;
