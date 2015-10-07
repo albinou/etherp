@@ -45,6 +45,7 @@ static struct option etherp_send_options[] = {
 	{ "size", required_argument, NULL, 's' },
 	{ "units", required_argument, NULL, 'u' },
 	{ "vary-size", no_argument, NULL, 'V' },
+	{ "no-data", no_argument, NULL, 'n' },
 	{ "verbose", no_argument, NULL, 'v' },
 	{ "help", no_argument, NULL, 'h' },
 	{ NULL, 0, NULL, 0 }
@@ -55,8 +56,9 @@ static char *etherp_send_options_help[][2] = {
 	{ "US", "wait US microseconds between frames" },
 	{ "NB", "send NB frames and exit" },
 	{ "SIZE", "send the size of frames (default 1500)" },
-	{ "STD", "using units of the specified strandard (default: iec)" },
+	{ "STD", "using units of the specified standard (default: iec)" },
 	{ NULL, "send frames with various sizes" },
+	{ NULL, "send frames without filling data and computing CRC" },
 	{ NULL, "activate the verbose" },
 	{ NULL, "display this help and exit" },
 	{ NULL, NULL }
@@ -67,6 +69,7 @@ static int etherp_verbose = 0;  /**< This program will verbose
 static int etherp_quit = 0;     /**< if set, send the last frame and exit */
 static unsigned long long etherp_nb_bytes = 0;
 static int etherp_use_iec = 1;
+static int etherp_use_data = 1;
 
 static void etherp_send_usage(const char *prog_name)
 {
@@ -202,14 +205,14 @@ static int etherp_send_frames(const char *macstr_dst, const char *ifname,
 		etherph->id = htonl(id);
 		etherph->stop = (count == 1) || quit_next_loop;
 
-		for (i = sizeof (struct etherp_hdr); i < sz; ++i) {
-			data[i] = (unsigned char)((int) (255. * rand() / RAND_MAX));
+		if (etherp_use_data) {
+			for (i = sizeof (struct etherp_hdr); i < sz; ++i) {
+				data[i] = (unsigned char)((int) (255. * rand() / RAND_MAX));
+			}
+			etherph->crc32 = htonl(crc32(crc32(0L, Z_NULL, 0),
+						     data + sizeof (struct etherp_hdr),
+						     sz - sizeof (struct etherp_hdr)));
 		}
-		etherph->crc32 = htonl(crc32(crc32(0L, Z_NULL, 0), data +
-					     sizeof (struct etherp_hdr),
-					     sz - sizeof (struct etherp_hdr))
-				       );
-
 		ETHERP_VPRINT("Sending frame to %s ID=%u\n", macstr_dst, id);
 		if (((ret = sendto(s, buf, ETH_HLEN + sz, 0, (struct sockaddr*) &s_addr,
 		                   sizeof (s_addr))) == -1) &&
@@ -265,7 +268,7 @@ int main(int argc, char *argv[])
 	struct itimerval itv;
 
 	while (1) {
-		c = getopt_long(argc, argv, "hI:i:c:s:u:Vv", etherp_send_options, NULL);
+		c = getopt_long(argc, argv, "hI:i:c:s:u:Vnv", etherp_send_options, NULL);
 
 		if (c == -1)
 			break;
@@ -301,7 +304,7 @@ int main(int argc, char *argv[])
 					return 1;
 				}
 				break;
-		        case 'u':
+			case 'u':
 				if (strlen(optarg) == 3
 				    && !memcmp(optarg, "iec", 3)) {
 					etherp_use_iec = 1;
@@ -315,6 +318,9 @@ int main(int argc, char *argv[])
 				break;
 			case 'V':
 				size = -1;
+				break;
+			case 'n':
+				etherp_use_data = 0;
 				break;
 			case 'v':
 				etherp_verbose = 1;

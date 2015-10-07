@@ -42,6 +42,7 @@
 static struct option etherp_recv_options[] = {
 	{ "interface", required_argument, NULL, 'I' },
 	{ "units", required_argument, NULL, 'u' },
+	{ "no-data", no_argument, NULL, 'n' },
 	{ "verbose", no_argument, NULL, 'v' },
 	{ "help", no_argument, NULL, 'h' },
 	{ NULL, 0, NULL, 0 }
@@ -49,7 +50,8 @@ static struct option etherp_recv_options[] = {
 
 static char *etherp_recv_options_help[][2] = {
 	{ "IF", "interface used to send raw data" },
-	{ "STD", "using units of the specified strandard (default: iec)" },
+	{ "STD", "using units of the specified standard (default: iec)" },
+	{ NULL, "don't validate data content (ignore CRC)" },
 	{ NULL, "activate the verbose" },
 	{ NULL, "display this help and exit" },
 	{ NULL, NULL }
@@ -60,6 +62,7 @@ static int etherp_verbose = 0;  /**< This program will verbose
 static int etherp_quit = 0;     /**< if set, exit the reception loop */
 static unsigned long long etherp_nb_bytes = 0;
 static int etherp_use_iec = 1;
+static int etherp_use_data = 1;
 
 static void etherp_recv_usage(const char *prog_name)
 {
@@ -183,11 +186,13 @@ static int etherp_recv_frames(const char *ifname)
 				       id - (last_id + 1), id, last_id);
 				nb_errors += (id - last_id);
 			}
-			if (etherph->crc32 != ntohl(crc32(crc32(0L, Z_NULL, 0),
-							  data + sizeof (struct etherp_hdr),
-							  len - sizeof (struct etherp_hdr) - ETH_HLEN))) {
-				printf("Warning: Received frame with wrong CRC\n");
-				++nb_errors;
+			if (etherp_use_data) {
+				if (etherph->crc32 != ntohl(crc32(crc32(0L, Z_NULL, 0),
+								  data + sizeof (struct etherp_hdr),
+								  len - sizeof (struct etherp_hdr) - ETH_HLEN))) {
+					printf("Warning: Received frame with wrong CRC\n");
+					++nb_errors;
+				}
 			}
 			last_id = id;
 
@@ -215,7 +220,7 @@ int main(int argc, char *argv[])
 	struct itimerval itv;
 
 	while (1) {
-		c = getopt_long(argc, argv, "hI:u:v", etherp_recv_options, NULL);
+		c = getopt_long(argc, argv, "hI:u:nv", etherp_recv_options, NULL);
 
 		if (c == -1)
 			break;
@@ -239,6 +244,9 @@ int main(int argc, char *argv[])
 					etherp_recv_usage(argv[0]);
 					return 1;
 				}
+				break;
+			case 'n':
+				etherp_use_data = 0;
 				break;
 			case 'v':
 				etherp_verbose = 1;
